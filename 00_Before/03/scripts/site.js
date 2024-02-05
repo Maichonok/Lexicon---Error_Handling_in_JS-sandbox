@@ -204,10 +204,18 @@ function getLoanApplicationDataFromInputs() {
   var la = new LoanApplication();
 
   la.ApplicantName = document.getElementById("inputName").value;
-
-  var month = document.getElementById("inputDoBMonth").value;
+  if (!la.ApplicantName || la.ApplicantName.trim().length === 0) {
+    throw new RequiredError("inputName", "name");
+  }
+    var month = document.getElementById("inputDoBMonth").value;
   var day = document.getElementById("inputDoBDay").value;
   var year = document.getElementById("inputDoBYear").value;
+
+  if (isNaN(month)) {
+    throw new NumberError("inputDoB", month);
+  } else if (month > 12) {
+    throw new RangeError("Month should be 1-12");
+  }
 
   var isEmployed = document.getElementById("IsEmployed").checked;
   var hasKids = document.getElementById("HasKids").checked;
@@ -230,57 +238,30 @@ function getLoanApplicationDataFromInputs() {
 
   return la;
 }
-
 function validateApplication() {
   var valid = true;
-
-  var la = getLoanApplicationDataFromInputs();
-
-  if (la.ApplicantName == "") {
-    document.getElementById("inputNameValidation").style.display = "block";
-
-    valid = false;
-  } else {
+  try {
+    var la = getLoanApplicationDataFromInputs();
     document.getElementById("inputNameValidation").style.display = "none";
-  }
 
-  if (la.ApplicantDateOfBirth == undefined) {
-    document.getElementById("inputDoBValidation").style.display = "block";
-
-    valid = false;
-  } else {
     document.getElementById("inputDoBValidation").style.display = "none";
-  }
 
-  if (la.ApplicantAnnualIncome == "") {
-    document.getElementById("inputAnnualIncomeValidation").style.display =
-      "block";
-
-    valid = false;
-  } else {
     document.getElementById("inputAnnualIncomeValidation").style.display =
       "none";
-  }
 
-  if (la.LoanPurpose == "") {
-    document.getElementById("inputLoanPurposeValidation").style.display =
-      "block";
-
-    valid = false;
-  } else {
     document.getElementById("inputLoanPurposeValidation").style.display =
       "none";
-  }
-
-  if (la.LoanAmount == "") {
-    document.getElementById("inputLoanAmountValidation").style.display =
-      "block";
-
-    valid = false;
-  } else {
     document.getElementById("inputLoanAmountValidation").style.display = "none";
+  } catch (error) {
+    valid = false;
+    if (error instanceof NumberError || error instanceof RequiredError) {
+      var errorLabel = document.getElementById(error.inputName + "Validation");
+      errorLabel.style.display = "block";
+      errorLabel.innerHTML = error.message;
+    } else {
+      throw error;
+    }
   }
-
   return valid;
 }
 
@@ -420,3 +401,36 @@ function foo(strings, ...values) {
 
   return str;
 }
+
+class NumberError extends Error {
+  constructor(inputName, number, ...params) {
+    super(...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, NumberError);
+    }
+
+    this.name = "NumberError";
+    this.number = number;
+    this.inputName = inputName;
+
+    this.message = `The value ${this.number} is not a number`;
+  }
+}
+
+class RequiredError extends Error {
+    constructor(inputName, valueName, ...params) {
+      super(...params);
+  
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, RequiredError);
+      }
+  
+      this.name = "RequiredError";
+      this.valueName = valueName;
+      this.inputName = inputName;
+  
+      this.message = `The value ${this.valueName} is required`;
+    }
+  }
+  
